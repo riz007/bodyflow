@@ -4,18 +4,29 @@ import * as THREE from "three";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { OrganId } from "@/data/schema";
-import { organLevels } from "@/pk/distribute";
+import { organLevels, organRoles, type OrganRole } from "@/pk/distribute";
 import type { Simulation } from "@/pk/simulate";
 import { useApp } from "@/state/store";
-import { CLASS_ACCENT, COMPARE_ACCENT } from "@/ui/theme";
+import { CLASS_ACCENT, COMPARE_ACCENT, PROCESSING } from "@/ui/theme";
 import { createOrganMaterial, createSkinMaterial, type OrganMaterial } from "@/shaders/materials";
 import { baseColorFor, organIdFromMeshName, organRegistry, type OrganEntry } from "./registry";
+import { glowCurve } from "./glow";
 import { introProgress } from "./intro";
 
 export const MODEL_URL = { desktop: "/models/body-desktop.glb", mobile: "/models/body-mobile.glb" } as const;
 
-/** Map an organ's illustrative level (≈0–2) to shader glow intensity, compressing the top end. */
-const glowCurve = (v: number) => 0.8 * (1 - Math.exp(-1.4 * v));
+/** Shader pattern per role: solid where it works, stripes for side effects, moving bands for absorbing/clearing. */
+const ROLE_LOOK: Record<OrganRole, { glow: number; dim: number; stripe: number; flow: number; white: number }> = {
+  damage: { glow: 1, dim: 0, stripe: 0, flow: 0, white: 0 },
+  target: { glow: 1.25, dim: 0, stripe: 0, flow: 0, white: 0 },
+  side: { glow: 1, dim: 0, stripe: 1, flow: 0, white: 0 },
+  absorbing: { glow: 1, dim: 0, stripe: 0, flow: 1, white: 0.75 },
+  clearing: { glow: 1, dim: 0, stripe: 0, flow: 1, white: 0.75 },
+  carried: { glow: 0.12, dim: 1, stripe: 0, flow: 0, white: 0 },
+};
+/** Vessels carry the plasma curve itself, so they never fade out. */
+const VESSELS_LOOK = { glow: 0.8, dim: 0, stripe: 0, flow: 0, white: 0 };
+const WHITE = new THREE.Color(PROCESSING);
 
 type OrganMesh = THREE.Mesh<THREE.BufferGeometry, OrganMaterial>;
 interface Prepared {
@@ -98,7 +109,9 @@ export function Body({ url, sim, compare }: { url: string; sim: Simulation | nul
     const intro = introProgress();
     const s = simRef.current;
     const c = compareRef.current;
-    const levels = s ? organLevels(s, t) : null;
+    // Roles only in single-drug view: compare mode keeps its two-colour overlay.
+    const roles = s && !c ? organRoles(s, t) : null;
+    const levels = s ? (roles ? null : organLevels(s, t)) : null;
     const levels2 = c ? organLevels(c, t) : null;
     const toxic = s?.level === "toxic";
     if (s) accent.set(CLASS_ACCENT[s.drug.drugClass]);
@@ -111,11 +124,17 @@ export function Body({ url, sim, compare }: { url: string; sim: Simulation | nul
     for (const { mesh, id } of organs) {
       const u = mesh.material.uniforms;
       u.uTime.value = time;
-      u.uGlowColor.value.copy(accent);
+      const state = roles?.[id];
+      const look = !state ? null : id === "vessels" && state.role === "carried" ? VESSELS_LOOK : ROLE_LOOK[state.role];
+      const level = state ? state.level : (levels?.[id] ?? 0);
+      u.uGlowColor.value.copy(accent).lerp(WHITE, look?.white ?? 0);
       u.uGlowColor2.value.copy(accent2);
-      u.uGlow.value += ((levels ? glowCurve(levels[id]) : 0) - u.uGlow.value) * k;
+      u.uGlow.value += ((s ? glowCurve(level) * (look?.glow ?? 1) : 0) - u.uGlow.value) * k;
       u.uGlow2.value += ((levels2 ? glowCurve(levels2[id]) : 0) - u.uGlow2.value) * k;
-      const damaged = toxic && s!.drug.toxicity.organs.includes(id) && (levels?.[id] ?? 0) > 0.25;
+      u.uDim.value += ((look?.dim ?? 0) - u.uDim.value) * k;
+      u.uStripe.value += ((look?.stripe ?? 0) - u.uStripe.value) * k;
+      u.uFlow.value += ((look?.flow ?? 0) - u.uFlow.value) * k;
+      const damaged = roles ? state!.role === "damage" : toxic && s!.drug.toxicity.organs.includes(id) && level > 0.25;
       u.uToxic.value += ((damaged ? 1 : 0) - u.uToxic.value) * k * 0.5;
       u.uHover.value += ((hoveredOrgan === id ? 1 : 0) - u.uHover.value) * k * 1.5;
       const opacity = selectedOrgan && selectedOrgan !== id ? 0.07 : 1;

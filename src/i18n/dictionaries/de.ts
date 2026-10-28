@@ -271,6 +271,24 @@ export const de: Dict = {
     footer:
       "Nur zu Lernzwecken. Keine medizinische Beratung. Werte sind ungefähre Bevölkerungsdurchschnitte. Sprich immer mit einer Ärztin, einem Arzt oder in der Apotheke und geh ins Krankenhaus, wenn es dir schlecht geht.",
   },
+  callouts: {
+    works: "Wirkt hier",
+    side: "Nebenwirkungen",
+    absorbing: "Nimmt auf",
+    breakingDown: "Baut ab",
+    filtering: "Filtert heraus",
+    collecting: "Sammelt sich im Urin",
+    bile: "Verlässt den Körper über die Galle",
+    damage: "Schadensrisiko",
+  },
+  legend: {
+    aria: "Bedeutung der Organfarben",
+    works: "Wo es wirkt",
+    side: "Nebenwirkungen",
+    processing: "Aufnahme oder Ausscheidung",
+    damage: "Schadensrisiko",
+    brightness: "Heller = mehr Medikament",
+  },
   cookies: {
     title: "Cookies",
     text: "Wir möchten Google-Analytics-Cookies verwenden, um zu verstehen, wie Bodyflow genutzt wird, etwa welche Medikamente angesehen werden. Sie werden nur gesetzt, wenn du zustimmst. Bodyflow funktioniert in beiden Fällen gleich, und du kannst deine Wahl jederzeit unter „Cookie-Einstellungen“ in der Fußzeile ändern.",

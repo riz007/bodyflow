@@ -45,6 +45,8 @@ export const CLASS_ACCENT: Record<DrugClass, string> = {
 };
 
 export const TOXIC = "#ff4d5e";
+/** Organs absorbing or clearing a drug glow near-white with moving bands, whatever the drug class. */
+export const PROCESSING = "#eaf4ff";
 
 /** Second colour for compare mode and further combination components (colour-blind-friendly blue/orange split). */
 export const COMPONENT_SHADES = (accent: string) => [

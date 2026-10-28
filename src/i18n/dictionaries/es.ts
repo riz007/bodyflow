@@ -272,6 +272,24 @@ export const es: Dict = {
     footer:
       "Solo visualización educativa. No es consejo médico. Los valores son promedios poblacionales aproximados. Consulta siempre a un médico o farmacéutico y ve al hospital si te encuentras mal.",
   },
+  callouts: {
+    works: "Actúa aquí",
+    side: "Efectos secundarios",
+    absorbing: "Absorbiendo",
+    breakingDown: "Descomponiéndolo",
+    filtering: "Filtrándolo",
+    collecting: "Acumulándose en la orina",
+    bile: "Saliendo por la bilis",
+    damage: "Riesgo de daño",
+  },
+  legend: {
+    aria: "Qué significan los colores de los órganos",
+    works: "Dónde actúa",
+    side: "Efectos secundarios",
+    processing: "Absorbiendo o eliminando",
+    damage: "Riesgo de daño",
+    brightness: "Más brillo = más medicamento",
+  },
   cookies: {
     title: "Cookies",
     text: "Nos gustaría usar cookies de Google Analytics para entender cómo se usa Bodyflow, por ejemplo qué medicamentos se consultan. Solo se instalan si aceptas. Bodyflow funciona igual en ambos casos y puedes cambiar tu elección cuando quieras en «Configuración de cookies», en el pie de página.",

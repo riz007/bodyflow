@@ -254,6 +254,24 @@ export const zh: Dict = {
     footer:
       "仅供科普可视化，不构成医疗建议。数值为近似的人群平均值。请务必咨询医生或药师，如感到不适请前往医院。",
   },
+  callouts: {
+    works: "在此起效",
+    side: "副作用",
+    absorbing: "吸收中",
+    breakingDown: "分解中",
+    filtering: "过滤排出",
+    collecting: "在尿液中积聚",
+    bile: "经胆汁排出",
+    damage: "损伤风险",
+  },
+  legend: {
+    aria: "器官颜色的含义",
+    works: "起效部位",
+    side: "副作用",
+    processing: "吸收或清除",
+    damage: "损伤风险",
+    brightness: "越亮 = 药物越多",
+  },
   cookies: {
     title: "Cookie",
     text: "我们希望使用 Google Analytics Cookie 来了解 Bodyflow 的使用情况，例如大家浏览了哪些药物。只有在你同意后才会设置这些 Cookie。无论是否同意，Bodyflow 的功能都相同；你可以随时在页脚的“Cookie 设置”中更改选择。",

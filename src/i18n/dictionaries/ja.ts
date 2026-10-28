@@ -261,6 +261,24 @@ export const ja: Dict = {
     footer:
       "学習用の可視化です。医療上の助言ではありません。値はおおよその集団平均です。必ず医師や薬剤師に相談し、具合が悪いときは病院へ行ってください。",
   },
+  callouts: {
+    works: "ここで作用",
+    side: "副作用",
+    absorbing: "吸収中",
+    breakingDown: "分解中",
+    filtering: "ろ過して排出",
+    collecting: "尿にたまる",
+    bile: "胆汁へ排出",
+    damage: "障害のリスク",
+  },
+  legend: {
+    aria: "臓器の色の意味",
+    works: "作用する場所",
+    side: "副作用",
+    processing: "吸収・排出",
+    damage: "障害のリスク",
+    brightness: "明るいほど薬が多い",
+  },
   cookies: {
     title: "Cookie",
     text: "Bodyflow の利用状況（どの薬がよく見られているかなど）を把握するため、Google Analytics の Cookie を使用したいと考えています。同意いただいた場合にのみ設定されます。どちらを選んでも Bodyflow の機能は変わらず、フッターの「Cookie 設定」からいつでも変更できます。",

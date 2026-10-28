@@ -58,6 +58,8 @@ export function createSkinMaterial() {
 /**
  * Organ material: wrapped diffuse + fake subsurface back-scatter + fresnel rim,
  * plus an emissive "drug presence" glow and a toxic damage state.
+ * The glow's pattern says what the organ is doing, so roles read without relying on colour:
+ * solid = where the drug works, diagonal stripes = side effects, bands moving down = absorbing or clearing.
  */
 export function createOrganMaterial(base: string) {
   return new THREE.ShaderMaterial({
@@ -68,6 +70,9 @@ export function createOrganMaterial(base: string) {
       uGlowColor2: { value: new THREE.Color("#ff9f43") },
       uGlow2: { value: 0 },
       uToxic: { value: 0 },
+      uDim: { value: 0 },
+      uStripe: { value: 0 },
+      uFlow: { value: 0 },
       uHover: { value: 0 },
       uOpacity: { value: 1 },
       uIntro: { value: 1 },
@@ -81,6 +86,9 @@ export function createOrganMaterial(base: string) {
       uniform vec3 uGlowColor2;
       uniform float uGlow2;
       uniform float uToxic;
+      uniform float uDim;
+      uniform float uStripe;
+      uniform float uFlow;
       uniform float uHover;
       uniform float uOpacity;
       uniform float uIntro;
@@ -104,17 +112,25 @@ export function createOrganMaterial(base: string) {
 
         // Dark, glossy "product render" base so only rim light and drug glow reach the bloom threshold.
         vec3 base = uBase * (0.06 + 0.42 * diff) + uBase * back * 0.5 + spec * 0.6;
-        base += vec3(0.62, 0.8, 1.0) * fres * 0.55;
+        // Organs the drug only passes through fade to a grey ghost so the involved ones stand out.
+        base = mix(base, vec3(dot(base, vec3(0.33))) * 0.22, uDim);
+        base += vec3(0.62, 0.8, 1.0) * fres * mix(0.55, 0.3, uDim);
 
-        // Drug presence: emissive glow, brighter at grazing angles so shape stays readable.
-        float pulse = 0.92 + 0.08 * sin(uTime * 2.2);
-        vec3 glow = uGlowColor * uGlow * (0.3 + 1.1 * fres) * pulse
-                  + uGlowColor2 * uGlow2 * (0.3 + 1.1 * fres) * pulse;
+        // Drug presence: emissive glow over the whole face, extra at grazing angles so shape stays readable.
+        float pulse = 0.9 + 0.1 * sin(uTime * 2.2);
+        float stripe = step(0.5, fract((vPosW.x + vPosW.y) * 55.0 - uTime * 0.25));
+        float band = 0.5 + 0.5 * sin(vPosW.y * 80.0 + uTime * 4.0);
+        float pattern = mix(1.0, 0.25 + 0.85 * stripe, uStripe) * mix(1.0, 0.35 + 0.95 * band, uFlow);
+        // Kept below 1 at a typical dose so the hue survives tone mapping; higher doses push into bloom.
+        vec3 glow = uGlowColor * uGlow * (0.45 + 0.6 * fres) * pulse * pattern
+                  + uGlowColor2 * uGlow2 * (0.45 + 0.6 * fres) * pulse;
+        // Let the glow colour tint the surface, not just add light on top of it.
+        base = mix(base, base * 0.45, clamp(uGlow + uGlow2, 0.0, 1.0) * 0.6);
 
-        // Toxic damage: desaturate, darken and push to red with a slow throb.
-        vec3 toxicCol = vec3(1.0, 0.18, 0.24);
-        float throb = 0.75 + 0.25 * sin(uTime * 3.4);
-        vec3 col = mix(base + glow, mix(vec3(dot(base, vec3(0.33))) * 0.5, toxicCol, 0.55) + toxicCol * throb * (0.4 + fres), uToxic);
+        // Toxic damage: darken and push to a saturated red with a slow throb.
+        vec3 toxicCol = vec3(1.0, 0.12, 0.18);
+        float throb = 0.7 + 0.3 * sin(uTime * 3.4);
+        vec3 col = mix(base + glow, toxicCol * (0.35 + 0.5 * diff) + toxicCol * throb * (0.55 + fres), uToxic);
 
         col += vec3(0.9, 0.97, 1.0) * uHover * (0.12 + fres * 0.6);
         col *= uIntro;

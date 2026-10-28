@@ -12,7 +12,7 @@ import { DoseControl } from "./DoseControl";
 import { OrganList } from "./OrganList";
 import { ZoomControls } from "./ZoomControls";
 import { fmtConc } from "./format";
-import { CLASS_ACCENT, TOXIC } from "./theme";
+import { CLASS_ACCENT, PROCESSING, TOXIC } from "./theme";
 
 const BodyCanvas = dynamic(() => import("@/scene/BodyCanvas"), { ssr: false });
 
@@ -122,6 +122,9 @@ export function Stage({
         </div>
       )}
 
+      {/* Key to the organ glow: bottom-right, where "Back to body" sits once an organ is selected */}
+      {sim && !compare && introDone && !selected && <GlowLegend sim={sim} />}
+
       {/* Empty state hint after the intro */}
       <AnimatePresence>
         {!sim && introDone && !selected && (
@@ -140,6 +143,35 @@ export function Stage({
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+/** Swatches mirror the shader: solid, diagonal stripes, horizontal bands, red. */
+function GlowLegend({ sim }: { sim: Simulation }) {
+  const { t } = useI18n();
+  const accent = CLASS_ACCENT[sim.drug.drugClass];
+  const items: [string, string][] = [
+    [t.legend.works, accent],
+    [t.legend.side, `repeating-linear-gradient(45deg, ${accent} 0 2px, transparent 2px 4px)`],
+    [t.legend.processing, `repeating-linear-gradient(0deg, ${PROCESSING} 0 2px, transparent 2px 4px)`],
+  ];
+  if (sim.level === "toxic") items.push([t.legend.damage, TOXIC]);
+  return (
+    <div
+      aria-label={t.legend.aria}
+      role="group"
+      className="pointer-events-none absolute bottom-4 right-4 z-10 max-w-[11.5rem] rounded-2xl border border-white/10 bg-black/45 px-3 py-2.5 text-[11.5px] leading-tight text-[var(--fg-2)] backdrop-blur-md"
+    >
+      <ul className="space-y-1.5">
+        {items.map(([label, bg]) => (
+          <li key={label} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full border border-white/20" style={{ background: bg }} aria-hidden />
+            {label}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[10.5px] text-[var(--muted)]">{t.legend.brightness}</p>
+    </div>
   );
 }
 

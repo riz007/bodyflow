@@ -17,8 +17,15 @@ export type OrganLevels = Record<OrganId, number>;
 /** Affinity used for organs a drug entry does not mention: present in blood, no special uptake. */
 const DEFAULT_AFFINITY = 0.5;
 
-export function organLevels(sim: Simulation, t: number): OrganLevels {
-  const out = Object.fromEntries(ORGAN_IDS.map((o) => [o, 0])) as OrganLevels;
+/** Where an organ's level comes from: drug in the blood, drug still in the gut, or drug being cleared. */
+export interface OrganTerms {
+  blood: number;
+  gut: number;
+  clearing: number;
+}
+
+export function organTerms(sim: Simulation, t: number): Record<OrganId, OrganTerms> {
+  const out = Object.fromEntries(ORGAN_IDS.map((o) => [o, { blood: 0, gut: 0, clearing: 0 }])) as Record<OrganId, OrganTerms>;
   const n = sim.components.length;
 
   sim.components.forEach((s, i) => {
@@ -28,28 +35,62 @@ export function organLevels(sim: Simulation, t: number): OrganLevels {
 
     for (const o of ORGAN_IDS) {
       const affinity = sim.drug.organs[o]?.affinity ?? DEFAULT_AFFINITY;
-      out[o] += (ORGANS[o].perfusion * affinity * cRel) / n;
+      out[o].blood += (ORGANS[o].perfusion * affinity * cRel) / n;
     }
 
     // Absorption: drug still in the gut (oral) lights up stomach first, then small intestine.
     const route = s.regimen.route;
     if (route === "oral") {
       const gut = amountAtAbsorptionSite(s.params, t) / systemicDose(ref.params);
-      out.stomach += (gut * Math.exp(-t / 0.4)) / n;
-      out.smallIntestine += gut / n;
-      out.liver += (0.5 * gut) / n; // portal blood passes the liver first
+      out.stomach.gut += (gut * Math.exp(-t / 0.4)) / n;
+      out.smallIntestine.gut += gut / n;
+      out.liver.clearing += (0.5 * gut) / n; // portal blood passes the liver first
     }
 
     // Elimination split by fe.
     const fe = s.component.fe.value;
     const ex = excretion(s.params, fe, t);
-    out.kidneys += ex.renalRate / refRate / n;
-    if (s.component.nonRenalRoute !== "tissue-uptake") out.liver += ex.nonRenalRate / refRate / n;
-    if (s.component.nonRenalRoute === "biliary") out.largeIntestine += (0.6 * ex.nonRenalRate) / refRate / n;
-    out.bladder += ex.urineUnchanged / n;
+    out.kidneys.clearing += ex.renalRate / refRate / n;
+    if (s.component.nonRenalRoute !== "tissue-uptake") out.liver.clearing += ex.nonRenalRate / refRate / n;
+    if (s.component.nonRenalRoute === "biliary") out.largeIntestine.clearing += (0.6 * ex.nonRenalRate) / refRate / n;
+    out.bladder.clearing += ex.urineUnchanged / n;
   });
 
   return out;
+}
+
+export function organLevels(sim: Simulation, t: number): OrganLevels {
+  const terms = organTerms(sim, t);
+  return Object.fromEntries(ORGAN_IDS.map((o) => [o, terms[o].blood + terms[o].gut + terms[o].clearing])) as OrganLevels;
+}
+
+/**
+ * What an organ is doing with the drug right now, for the glow pattern and on-body callouts.
+ * "carried" means the drug is only passing through in the blood.
+ */
+export type OrganRole = "damage" | "target" | "absorbing" | "clearing" | "side" | "carried";
+
+/** Level below which an organ is not worth calling out. */
+const ACTIVE = 0.05;
+
+export function organRoles(sim: Simulation, t: number): Record<OrganId, { level: number; role: OrganRole }> {
+  const terms = organTerms(sim, t);
+  const toxic = sim.level === "toxic";
+  return Object.fromEntries(
+    ORGAN_IDS.map((o) => {
+      const { blood, gut, clearing } = terms[o];
+      const level = blood + gut + clearing;
+      const effect = sim.drug.organs[o];
+      let role: OrganRole = "carried";
+      // Same rule the damage visual has always used: toxic range, a listed organ, real exposure.
+      if (toxic && sim.drug.toxicity.organs.includes(o) && level > 0.25) role = "damage";
+      else if (effect?.target) role = "target";
+      else if (gut > ACTIVE && gut >= blood && gut >= clearing) role = "absorbing";
+      else if (clearing > ACTIVE && clearing >= 0.5 * blood) role = "clearing";
+      else if (effect?.sideEffects) role = "side";
+      return [o, { level, role }];
+    }),
+  ) as Record<OrganId, { level: number; role: OrganRole }>;
 }
 
 /**

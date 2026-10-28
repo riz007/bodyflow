@@ -264,6 +264,24 @@ export const ko: Dict = {
     footer:
       "학습용 시각화일 뿐 의학적 조언이 아닙니다. 수치는 대략적인 집단 평균입니다. 반드시 의사나 약사와 상의하고, 몸이 좋지 않으면 병원에 가세요.",
   },
+  callouts: {
+    works: "여기서 작용",
+    side: "부작용",
+    absorbing: "흡수 중",
+    breakingDown: "분해 중",
+    filtering: "걸러 내는 중",
+    collecting: "소변에 모이는 중",
+    bile: "담즙으로 배출",
+    damage: "손상 위험",
+  },
+  legend: {
+    aria: "장기 색상의 의미",
+    works: "작용 부위",
+    side: "부작용",
+    processing: "흡수 또는 제거",
+    damage: "손상 위험",
+    brightness: "밝을수록 약이 많음",
+  },
   cookies: {
     title: "쿠키",
     text: "Bodyflow가 어떻게 사용되는지(예: 사람들이 어떤 약을 살펴보는지) 이해하기 위해 Google Analytics 쿠키를 사용하고자 합니다. 동의하는 경우에만 설정됩니다. 어느 쪽을 선택해도 Bodyflow는 똑같이 작동하며, 바닥글의 ‘쿠키 설정’에서 언제든 선택을 바꿀 수 있습니다.",

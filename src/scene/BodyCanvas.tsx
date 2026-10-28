@@ -20,7 +20,9 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { Simulation } from "@/pk/simulate";
 import { usePrefersReducedMotion } from "@/state/hooks";
 import { useApp } from "@/state/store";
+import { CLASS_ACCENT } from "@/ui/theme";
 import { Body, MODEL_URL } from "./Body";
+import { OrganCallouts } from "./OrganCallouts";
 import { CameraRig } from "./CameraRig";
 import { skipIntro, startIntro } from "./intro";
 import { organRegistry } from "./registry";
@@ -104,6 +106,13 @@ export default function BodyCanvas({
           <Body url={MODEL_URL[tier]} sim={sim} compare={compare} />
           <IntroStarter />
           <OrganTooltip names={organNames} />
+          {/* Compare mode keeps its two-colour overlay without role labels. */}
+          <OrganCallouts
+            sim={compare ? null : sim}
+            accent={sim ? CLASS_ACCENT[sim.drug.drugClass] : "#ffffff"}
+            names={organNames}
+            labels={t.callouts}
+          />
         </Suspense>
         {controlsEl && <CameraRig domElement={controlsEl} />}
         <EffectComposer multisampling={high ? 4 : 0} enableNormalPass={false}>

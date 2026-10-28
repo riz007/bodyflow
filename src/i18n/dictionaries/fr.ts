@@ -272,6 +272,24 @@ export const fr: Dict = {
     footer:
       "Visualisation éducative uniquement. Pas un avis médical. Les valeurs sont des moyennes de population approximatives. Consultez toujours un médecin ou un pharmacien, et rendez-vous à l'hôpital si vous vous sentez mal.",
   },
+  callouts: {
+    works: "Agit ici",
+    side: "Effets indésirables",
+    absorbing: "Absorption",
+    breakingDown: "Dégradation",
+    filtering: "Filtration",
+    collecting: "Accumulation dans l'urine",
+    bile: "Élimination par la bile",
+    damage: "Risque de lésion",
+  },
+  legend: {
+    aria: "Signification des couleurs des organes",
+    works: "Là où il agit",
+    side: "Effets indésirables",
+    processing: "Absorption ou élimination",
+    damage: "Risque de lésion",
+    brightness: "Plus lumineux = plus de médicament",
+  },
   cookies: {
     title: "Cookies",
     text: "Nous aimerions utiliser des cookies Google Analytics pour comprendre comment Bodyflow est utilisé, par exemple quels médicaments sont consultés. Ils ne sont déposés que si vous acceptez. Bodyflow fonctionne de la même façon dans les deux cas, et vous pouvez modifier votre choix à tout moment via « Paramètres des cookies » en bas de page.",

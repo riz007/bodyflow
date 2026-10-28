@@ -266,6 +266,24 @@ export const en = {
     footer:
       "Educational visualisation only. Not medical advice. Values are approximate population averages. Always check with a doctor or pharmacist, and go to hospital if you feel unwell.",
   },
+  callouts: {
+    works: "Works here",
+    side: "Side effects",
+    absorbing: "Absorbing",
+    breakingDown: "Breaking it down",
+    filtering: "Filtering it out",
+    collecting: "Collecting in urine",
+    bile: "Leaving in bile",
+    damage: "Damage risk",
+  },
+  legend: {
+    aria: "What the organ colours mean",
+    works: "Where it works",
+    side: "Side effects",
+    processing: "Absorbing or clearing",
+    damage: "Damage risk",
+    brightness: "Brighter = more medicine",
+  },
   cookies: {
     title: "Cookies",
     text: "We'd like to use Google Analytics cookies to understand how Bodyflow is used, such as which medicines people explore. They are only set if you accept. Bodyflow works the same either way, and you can change your choice any time under “Cookie settings” in the footer.",
