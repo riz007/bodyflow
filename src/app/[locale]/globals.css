@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #05060a;
+  --bg-2: #0a0c12;
+  --fg: #eef1f7;
+  --fg-2: #b9c0cf;
+  --muted: #7a8396;
+  --line: rgba(255, 255, 255, 0.075);
+  --grid: rgba(255, 255, 255, 0.05);
+  --toxic: #ff4d5e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* Inter Tight covers Latin + Cyrillic; CJK, Thai and Bengali fall through to good system fonts. */
+  --font-sans: var(--font-sans-face), ui-sans-serif, system-ui, "PingFang SC",
+    "Hiragino Sans", "Apple SD Gothic Neo", "Noto Sans CJK SC", "Noto Sans JP",
+    "Noto Sans KR", "Microsoft YaHei", "Yu Gothic UI", "Malgun Gothic",
+    "Thonburi", "Noto Sans Thai", "Leelawadee UI", "Kohinoor Bangla",
+    "Noto Sans Bengali", "Nirmala UI", sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+:focus-visible {
+  outline: 2px solid #9fd8ff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/*
+ * Scripts without letter case, or with combining marks, don't suit the mono, tracked, uppercase
+ * eyebrow: tracking splits Thai/Bengali vowel marks and the mono face has no glyphs for them.
+ */
+:lang(zh) .eyebrow,
+:lang(ja) .eyebrow,
+:lang(ko) .eyebrow,
+:lang(th) .eyebrow,
+:lang(bn) .eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+/* Thai and Bengali stack marks above and below the line, so give them more room. */
+:lang(th),
+:lang(bn) {
+  line-height: 1.65;
+}
+
+/* CJK has no spaces: let long strings wrap anywhere rather than overflow. */
+:lang(zh),
+:lang(ja) {
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Layout */
+.app-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 380px;
+  grid-template-rows: 52px minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "head head head"
+    "left main right"
+    "left time right"
+    "foot foot foot";
+}
+.area-head {
+  grid-area: head;
+}
+.area-left {
+  grid-area: left;
+}
+.area-main {
+  grid-area: main;
+}
+.area-right {
+  grid-area: right;
+}
+.area-time {
+  grid-area: time;
+}
+.area-foot {
+  grid-area: foot;
+}
+
+@media (max-width: 1100px) {
+  .app-grid {
+    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-rows: 52px clamp(440px, 66vh, 720px) auto auto auto;
+    grid-template-areas:
+      "head head"
+      "left main"
+      "left time"
+      "right right"
+      "foot foot";
+    height: auto;
+    min-height: 100dvh;
+  }
+  /* The picker spans the body and timeline rows. Without size containment its full list
+     (60+ medicines) would stretch those rows; contained, it fills them and scrolls inside. */
+  .area-left {
+    contain: size;
+    overflow: hidden;
+  }
+}
+@media (max-width: 720px) {
+  .app-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 52px 340px clamp(380px, 62vh, 560px) auto auto auto;
+    grid-template-areas: "head" "left" "main" "time" "right" "foot";
+  }
+  .area-left {
+    contain: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .area-right {
+    border-left: 0;
+  }
+  /* One scrollable row of category chips, so the short picker still shows several medicines. */
+  .chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    scrollbar-width: none;
+  }
+  .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Segmented control */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  /* Frosted so labels stay legible over the 3D body. */
+  background: rgba(8, 10, 16, 0.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.seg-btn {
+  white-space: nowrap;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.seg-btn:hover {
+  color: var(--fg);
+}
+.seg-btn[aria-checked="true"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--fg);
+}
+.seg-toxic[aria-checked="true"] {
+  background: rgba(255, 77, 94, 0.16);
+  color: #ffb3bb;
+}
+
+/* Scrubber */
+.scrubber {
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.scrubber::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fg);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+}
+.scrubber::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg);
+}
+
+.chart-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--muted);
+}
+
+.stage-glow {
+  background: radial-gradient(
+      60% 50% at 50% 40%,
+      rgba(120, 160, 255, 0.07),
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 40% at 50% 100%,
+      rgba(80, 220, 200, 0.04),
+      transparent 70%
+    );
+}
+
+.logo-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #5fe1ff, #9d8cff, #4fe3bf, #5fe1ff);
+  box-shadow: 0 0 14px rgba(95, 225, 255, 0.45);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5fe1ff;
+  box-shadow: 0 0 0 0 rgba(95, 225, 255, 0.6);
+  animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 9px rgba(95, 225, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(95, 225, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}

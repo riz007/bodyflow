@@ -1,5 +1,6 @@
 "use client";
-import { ORGANS } from "@/data/organs";
+import { useI18n } from "@/i18n/I18nProvider";
+import { tf, type Dict } from "@/i18n/dictionaries/en";
 import { concentration } from "@/pk/model";
 import type { ComponentSim, Simulation } from "@/pk/simulate";
 import { useApp } from "@/state/store";
@@ -15,15 +16,15 @@ import { CLASS_ACCENT, TOXIC } from "./theme";
 
 const BodyCanvas = dynamic(() => import("@/scene/BodyCanvas"), { ssr: false });
 
-export function phaseAt(c: ComponentSim, t: number): string {
+export function phaseAt(c: ComponentSim, t: number): keyof Dict["phase"] {
   const kind = c.params.kinetics.kind;
   if (t < c.peak.tmax * 0.9)
-    return kind === "iv-infusion" ? "Infusing" : "Absorbing";
+    return kind === "iv-infusion" ? "infusing" : "absorbing";
   if (t <= c.peak.tmax * 1.15 || (kind === "iv-bolus" && t < 0.05))
-    return "At peak";
-  if (t >= c.cleared) return "≈ Cleared";
-  if (c.window && t > c.window.offset) return "Below effective level";
-  return "Eliminating";
+    return "peak";
+  if (t >= c.cleared) return "cleared";
+  if (c.window && t > c.window.offset) return "below";
+  return "eliminating";
 }
 
 export function Stage({
@@ -33,6 +34,7 @@ export function Stage({
   sim: Simulation | null;
   compare: Simulation | null;
 }) {
+  const { t } = useI18n();
   const introDone = useApp((s) => s.introDone);
   const selected = useApp((s) => s.selectedOrgan);
   const selectOrgan = useApp((s) => s.selectOrgan);
@@ -40,7 +42,7 @@ export function Stage({
 
   return (
     <section
-      aria-label="Body view"
+      aria-label={t.stage.body}
       className="relative h-full min-h-0 overflow-hidden"
     >
       <div className="absolute inset-0">
@@ -57,10 +59,10 @@ export function Stage({
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-wrap items-start justify-between gap-4"
+              className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 pr-12"
             >
               <LiveReadout sim={sim} />
-              <div className="pointer-events-auto">
+              <div className="pointer-events-auto ml-auto max-w-full">
                 <DoseControl drug={sim.drug} />
               </div>
             </motion.div>
@@ -79,14 +81,14 @@ export function Stage({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             onClick={() => selectOrgan(null)}
-            className="absolute bottom-4 right-4 z-10 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-[13px] backdrop-blur hover:border-white/35"
+            className="absolute bottom-4 right-4 z-10 whitespace-nowrap rounded-full border border-white/15 bg-black/60 px-4 py-2 text-[13px] backdrop-blur hover:border-white/35"
           >
-            ← Back to body{" "}
+            ← {t.stage.backToBody}{" "}
             <span className="ml-1 font-mono text-[11px] text-[var(--muted)]">
               Esc
             </span>
             <span className="sr-only">
-              , currently viewing {ORGANS[selected].name}
+              , {tf(t.stage.viewing, { organ: t.organs[selected].name })}
             </span>
           </motion.button>
         )}
@@ -95,7 +97,7 @@ export function Stage({
       {/* Organ list: keyboard path to every organ */}
       {sim && introDone && (
         <div
-          className={`absolute bottom-4 left-4 z-10 max-w-[calc(100%-2rem)] ${listOpen ? "w-[300px]" : "w-auto"}`}
+          className={`absolute bottom-4 left-4 z-10 ${listOpen ? "w-[300px] max-w-[calc(100%-2rem)]" : "w-auto max-w-[calc(100%-12rem)]"}`}
         >
           <div className="rounded-2xl border border-white/10 bg-black/45 backdrop-blur-md">
             <button
@@ -105,7 +107,7 @@ export function Stage({
               className="flex w-full items-center justify-between px-3.5 py-2.5 text-left"
             >
               <span className="eyebrow mr-3">
-                {listOpen ? "Organs" : "Organ list"}
+                {listOpen ? t.stage.organs : t.stage.organList}
               </span>
               <span className="text-[var(--muted)]" aria-hidden>
                 {listOpen ? "–" : "+"}
@@ -129,10 +131,10 @@ export function Stage({
             exit={{ opacity: 0 }}
             className="pointer-events-none absolute inset-x-0 bottom-10 z-10 text-center"
           >
-            <p className="eyebrow">How medicines move through you</p>
+            <p className="eyebrow px-6">{t.stage.tagline}</p>
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-sm backdrop-blur">
               <span className="pulse-dot" aria-hidden />
-              Pick a medicine
+              {t.stage.pick}
             </p>
           </motion.div>
         )}
@@ -142,6 +144,7 @@ export function Stage({
 }
 
 function Loader() {
+  const { t } = useI18n();
   const { progress, active } = useProgress();
   const [gone, setGone] = useState(false);
   const done = !active && progress >= 100;
@@ -190,8 +193,8 @@ function Loader() {
             }}
           />
         </svg>
-        <p className="mt-4 font-mono text-[11px] tracking-[0.2em] text-[var(--muted)]">
-          LOADING ANATOMY · {Math.round(progress)}%
+        <p className="eyebrow mt-4">
+          {t.stage.loading} · {Math.round(progress)}%
         </p>
       </div>
     </motion.div>
@@ -199,13 +202,14 @@ function Loader() {
 }
 
 function LiveReadout({ sim }: { sim: Simulation }) {
+  const { t: tr } = useI18n();
   const t = useApp((s) => s.t);
   const toxic = sim.level === "toxic";
   const accent = toxic ? TOXIC : CLASS_ACCENT[sim.drug.drugClass];
   const relative = toxic || sim.drug.relativeOnly;
   return (
     <div
-      className="space-y-2 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+      className="shrink-0 space-y-2 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
       aria-live="off"
     >
       {sim.components.map((c, i) => {
@@ -214,8 +218,8 @@ function LiveReadout({ sim }: { sim: Simulation }) {
         return (
           <div key={c.component.id}>
             <p className="eyebrow">
-              {sim.components.length > 1 ? c.component.name : "In plasma now"} ·{" "}
-              <span style={{ color: accent }}>{phaseAt(c, t)}</span>
+              {sim.components.length > 1 ? c.component.name : tr.stage.inPlasma}{" "}
+              · <span style={{ color: accent }}>{tr.phase[phaseAt(c, t)]}</span>
             </p>
             <p
               className={`font-mono tabular-nums tracking-tight ${sim.components.length > 1 ? "text-xl" : "text-3xl"}`}
@@ -223,15 +227,16 @@ function LiveReadout({ sim }: { sim: Simulation }) {
             >
               {relative
                 ? toxic
-                  ? levelPhrase(pct)
+                  ? tr.toxicLevel[levelPhrase(pct)]
                   : `${Math.round(pct)}%`
                 : fmtConc(v)}
-              {!relative && (
-                <span className="ml-2 text-sm text-[var(--muted)]">
-                  {Math.round(pct)}% of peak
-                </span>
-              )}
             </p>
+            {/* On its own line: long translations ("93% от пика") would otherwise run under the controls. */}
+            {!relative && (
+              <p className="text-[12px] text-[var(--muted)]">
+                {tf(tr.stage.ofPeak, { pct: Math.round(pct) })}
+              </p>
+            )}
           </div>
         );
       })}
@@ -240,9 +245,9 @@ function LiveReadout({ sim }: { sim: Simulation }) {
 }
 
 /** Qualitative words for the toxic range: no numbers. */
-function levelPhrase(pctOfTypicalPeak: number) {
-  if (pctOfTypicalPeak < 5) return "Trace";
-  if (pctOfTypicalPeak < 100) return "Within typical range";
-  if (pctOfTypicalPeak < 250) return "Above typical";
-  return "Far above typical";
+function levelPhrase(pctOfTypicalPeak: number): keyof Dict["toxicLevel"] {
+  if (pctOfTypicalPeak < 5) return "trace";
+  if (pctOfTypicalPeak < 100) return "within";
+  if (pctOfTypicalPeak < 250) return "above";
+  return "far";
 }

@@ -12,11 +12,14 @@ An interactive 3D visualisation of how medicines move through the human body: ab
 - **Organ panels**: what each organ does, what the drug does there, what happens at too high a dose, and when the organ is affected.
 - **Dose levels** (typical, high, toxic). The toxic range never shows milligram amounts, multipliers or axis values, and it shows a calm help banner.
 - **Compare mode** overlays two medicines. Every state is shareable in the URL (`/drug/diazepam?dose=typical&t=6h&vs=alprazolam`), and each medicine has its own indexable page.
+- **10 languages**: English, Español, 中文, 한국어, 日本語, Français, Deutsch, ไทย, বাংলা and Русский. Each language has its own URLs (`/es/drug/aspirin`; English at `/`), hreflang alternates and sitemap entries. The interface, safety texts and organ descriptions are translated. Medicine-specific clinical content is English for now and labelled as such, pending expert-reviewed translation.
 - **SEO**: per-medicine titles, descriptions, canonical URLs and dynamic Open Graph images; a sitemap, robots, a web manifest and JSON-LD.
 
 ## Data and sources
 
 Every number lives in typed, Zod-validated files in `src/data/drugs/`. Each value records its source (FDA label via DailyMed, UK SmPC, Goodman & Gilman, StatPearls, EUCAST) and its literature range where one exists. Values that could not be pinned firmly to a source are marked `needsReview: true` and listed in [`docs/DATA_REVIEW.md`](docs/DATA_REVIEW.md), which is generated from the data and checked by the test suite.
+
+**Known limitation:** the anatomy comes from BodyParts3D's male reference body, and the PK model uses a single average 70 kg adult. Sex differences (body composition, kidney function, some liver enzymes, QT risk, pregnancy) are not modelled; the disclaimer says so.
 
 Organ "glow" combines blood flow, tissue affinity and elimination route. It is an illustrative approximation, not a validated PBPK model, and the UI says so.
 
@@ -49,6 +52,7 @@ src/
   shaders/    GLSL materials (X-ray skin, organ glow)
   state/      Zustand store, URL sync, playback
   ui/         Panels, chart, picker, timeline
+  i18n/       Locales, UI dictionaries (en is the source of truth; others are type-checked against it)
 scripts/      Anatomy model pipeline
 docs/         Specification, build plan, data review list
 ```

@@ -9,7 +9,9 @@ import { UrlSync } from "@/state/UrlSync";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { CookieSettingsLink } from "./CookieConsent";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { cameraApi, ZOOM_STEP } from "@/scene/cameraApi";
 import { DisclaimerButton, PanelDisclaimer } from "./Disclaimer";
 import { DrugPicker } from "./DrugPicker";
@@ -28,6 +30,7 @@ function autoSpeed(tEnd: number) {
 }
 
 export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
+  const { t, prefix } = useI18n();
   const sim = useSimulation();
   const compare = useCompareSimulation();
   const selectedOrgan = useApp((s) => s.selectedOrgan);
@@ -76,25 +79,48 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
 
   return (
     <div className="app-grid h-dvh">
-      <UrlSync initialDrugId={initialDrugId} />
-      <header className="area-head flex items-center justify-between border-b border-[var(--line)] px-5">
+      <UrlSync initialDrugId={initialDrugId} prefix={prefix} />
+      <header className="area-head flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 sm:px-5">
         <Link
-          href="/"
+          href={prefix || "/"}
           onClick={() => useApp.getState().selectDrug(null)}
-          className="flex items-center gap-2.5 font-semibold tracking-tight"
+          aria-label={t.header.home}
+          className="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight"
         >
           <span className="logo-mark" aria-hidden />
           Bodyflow
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <DisclaimerButton />
+          <LanguageSwitcher />
           {sim && (
             <button
               type="button"
               onClick={copyLink}
-              className="rounded-full border border-[var(--line)] px-3.5 py-1.5 text-[12.5px] hover:border-white/30"
+              aria-label={share === "copied" ? t.header.copied : t.header.share}
+              title={t.header.share}
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--line)] px-3 py-1.5 text-[12.5px] hover:border-white/30"
             >
-              {share === "copied" ? "Link copied" : "Share"}
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 16 16"
+                aria-hidden
+                className="shrink-0"
+              >
+                <path
+                  d="M8 10V2.5M5 5.2 8 2.3l3 2.9M3.5 8.5v4.5h9V8.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {/* Icon-only on phones, where long translations would overflow the header. */}
+              <span className="hidden sm:inline">
+                {share === "copied" ? t.header.copied : t.header.share}
+              </span>
             </button>
           )}
         </div>
@@ -142,8 +168,7 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
               animate={{ opacity: 1 }}
               className="text-sm text-[var(--muted)]"
             >
-              Choose a medicine to see how your body absorbs, distributes,
-              metabolises and excretes it.
+              {t.empty}
             </motion.p>
           )}
         </AnimatePresence>
@@ -158,11 +183,8 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
       </div>
 
       <footer className="area-foot flex items-center justify-center border-t border-[var(--line)] px-4 py-2 text-center text-[11px] text-[var(--muted)]">
-        <span>
-          Educational visualisation only. Not medical advice. Values are
-          approximate population averages. Always check with a doctor or
-          pharmacist, and go to hospital if you feel unwell. ·{" "}
-          <CookieSettingsLink />
+        <span className="max-w-5xl text-balance">
+          {t.disclaimer.footer} · <CookieSettingsLink />
         </span>
       </footer>
     </div>

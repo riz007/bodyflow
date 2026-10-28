@@ -1,4 +1,4 @@
-import type { Category, DrugClass } from "@/data/schema";
+import type { DrugClass } from "@/data/schema";
 
 /** One accent per drug class. Red is reserved for toxicity and never used here. */
 export const CLASS_ACCENT: Record<DrugClass, string> = {
@@ -46,19 +46,10 @@ export const CLASS_ACCENT: Record<DrugClass, string> = {
 
 export const TOXIC = "#ff4d5e";
 
-export const CATEGORY_LABEL: Record<Category, string> = {
-  Everyday: "Everyday",
-  ER: "Emergency",
-  Cardio: "Heart & blood",
-  CNS: "Brain & nerves",
-  Pain: "Pain",
-  Antibiotic: "Anti-infectives",
-  Endocrine: "Hormones & diabetes",
-  GI: "Stomach & gut",
-  Respiratory: "Breathing & allergy",
-  PEP: "HIV PEP",
-};
-
 /** Second colour for compare mode and further combination components (colour-blind-friendly blue/orange split). */
-export const COMPONENT_SHADES = (accent: string) => [accent, "#ffffff", "#7aa2ff"];
+export const COMPONENT_SHADES = (accent: string) => [
+  accent,
+  "#ffffff",
+  "#7aa2ff",
+];
 export const COMPARE_ACCENT = "#ff9f43";

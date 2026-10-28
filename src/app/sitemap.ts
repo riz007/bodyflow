@@ -1,18 +1,35 @@
 import type { MetadataRoute } from "next";
 import { DRUGS } from "@/data";
-import { drugPath } from "@/lib/seo";
+import { LOCALES, localePath } from "@/i18n/config";
+import { drugPath, languageAlternates } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
-/** The home page plus one entry per medicine (each has its own title, description and OG image). */
+const abs = (p: string) => `${SITE.url}${p === "/" ? "" : p}`;
+
+/** Every page in every language, each listing its translations (hreflang). */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  return [
-    { url: SITE.url, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    ...DRUGS.map((d) => ({
-      url: `${SITE.url}${drugPath(d)}`,
+  const entry = (
+    path: string,
+    priority: number,
+    changeFrequency: "weekly" | "monthly",
+  ) =>
+    LOCALES.map((l) => ({
+      url: abs(localePath(l, path)),
       lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
+      changeFrequency,
+      priority,
+      alternates: {
+        languages: Object.fromEntries(
+          Object.entries(languageAlternates(path)).map(([lang, p]) => [
+            lang,
+            abs(p),
+          ]),
+        ),
+      },
+    }));
+  return [
+    ...entry("/", 1, "weekly"),
+    ...DRUGS.flatMap((d) => entry(drugPath(d), 0.7, "monthly")),
   ];
 }

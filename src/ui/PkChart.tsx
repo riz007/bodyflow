@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { concentration } from "@/pk/model";
 import type { Simulation } from "@/pk/simulate";
 import { useApp } from "@/state/store";
-import { fmtTime, fmtTimeShort } from "./format";
+import { fmtTimeShort } from "./format";
+import { useI18n } from "@/i18n/I18nProvider";
+import { tf } from "@/i18n/dictionaries/en";
 import { CLASS_ACCENT, COMPARE_ACCENT, TOXIC } from "./theme";
 
 interface Series {
@@ -24,27 +26,42 @@ const PAD = { l: 52, r: 16, t: 14, b: 26 };
  * The toxic range is normalised to its own peak with no numbers, thresholds or typical-dose
  * reference, so the chart's proportions cannot reveal a toxic dose amount.
  */
-export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation | null }) {
+export function PkChart({
+  sim,
+  compare,
+}: {
+  sim: Simulation;
+  compare: Simulation | null;
+}) {
+  const { t: tr } = useI18n();
   const wrap = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(640);
   const h = 190;
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, e.contentRect.width)));
+    const ro = new ResizeObserver(([e]) =>
+      setW(Math.max(280, e.contentRect.width)),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   const toxic = sim.level === "toxic";
-  const relative = toxic || !!compare || sim.components.length > 1 || sim.drug.relativeOnly;
+  const relative =
+    toxic || !!compare || sim.components.length > 1 || sim.drug.relativeOnly;
   const tEnd = compare ? Math.max(sim.tEnd, compare.tEnd) : sim.tEnd;
   const accent = CLASS_ACCENT[sim.drug.drugClass];
   const palette = [accent, "#ffffff", "#7aa2ff"];
 
   const { series, yMax, thresholds } = useMemo(() => {
     const ts = Array.from({ length: N + 1 }, (_, i) => (tEnd * i) / N);
-    const mk = (s: Simulation, color: (i: number) => string, dashed: boolean, prefix: string): Series[] =>
+    const mk = (
+      s: Simulation,
+      color: (i: number) => string,
+      dashed: boolean,
+      prefix: string,
+    ): Series[] =>
       s.components.map((c, i) => {
         const ref = toxic ? c.peak.cmax : s.reference[i].peak.cmax;
         return {
@@ -65,8 +82,19 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
     const thresholds = sim.components.flatMap((c, i) => {
       const lvl = c.component.effectiveLevel;
       if (!lvl || toxic) return [];
-      const y = relative ? (100 * lvl.value) / sim.reference[i].peak.cmax : lvl.value;
-      return [{ y, label: sim.components.length > 1 ? `${c.component.name} ${lvl.label}` : lvl.label, color: palette[i % palette.length] }];
+      const y = relative
+        ? (100 * lvl.value) / sim.reference[i].peak.cmax
+        : lvl.value;
+      return [
+        {
+          y,
+          label:
+            sim.components.length > 1
+              ? `${c.component.name} ${lvl.label}`
+              : lvl.label,
+          color: palette[i % palette.length],
+        },
+      ];
     });
     const peakY = Math.max(...series.flatMap((s) => s.ys));
     const yMax = niceMax(Math.max(peakY, ...thresholds.map((t) => t.y)) * 1.08);
@@ -78,7 +106,13 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
   const ih = h - PAD.t - PAD.b;
   const x = (t: number) => PAD.l + (t / tEnd) * iw;
   const y = (v: number) => PAD.t + ih - (Math.min(v, yMax) / yMax) * ih;
-  const path = (ys: number[]) => ys.map((v, i) => `${i ? "L" : "M"}${x((tEnd * i) / N).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const path = (ys: number[]) =>
+    ys
+      .map(
+        (v, i) =>
+          `${i ? "L" : "M"}${x((tEnd * i) / N).toFixed(1)},${y(v).toFixed(1)}`,
+      )
+      .join("");
 
   const xTicks = timeTicks(tEnd);
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMax);
@@ -101,7 +135,14 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
         width={w}
         height={h}
         role="img"
-        aria-label={`Plasma concentration over time for ${sim.drug.name}${compare ? ` compared with ${compare.drug.name}` : ""}`}
+        aria-label={
+          compare
+            ? tf(tr.chart.ariaCompare, {
+                name: sim.drug.name,
+                other: compare.drug.name,
+              })
+            : tf(tr.chart.aria, { name: sim.drug.name })
+        }
         className="block touch-none cursor-crosshair"
         onPointerDown={(e) => {
           dragging.current = true;
@@ -114,9 +155,24 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
       >
         <defs>
           {series.map((s) => (
-            <linearGradient key={s.key} id={`fill-${s.key}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={toxic ? TOXIC : s.color} stopOpacity={s.dashed ? 0.12 : 0.28} />
-              <stop offset="100%" stopColor={toxic ? TOXIC : s.color} stopOpacity={0} />
+            <linearGradient
+              key={s.key}
+              id={`fill-${s.key}`}
+              x1="0"
+              x2="0"
+              y1="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stopColor={toxic ? TOXIC : s.color}
+                stopOpacity={s.dashed ? 0.12 : 0.28}
+              />
+              <stop
+                offset="100%"
+                stopColor={toxic ? TOXIC : s.color}
+                stopOpacity={0}
+              />
             </linearGradient>
           ))}
         </defs>
@@ -124,19 +180,46 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
         {/* grid */}
         {yTicks.map((v) => (
           <g key={v}>
-            <line x1={PAD.l} x2={w - PAD.r} y1={y(v)} y2={y(v)} stroke="var(--grid)" />
+            <line
+              x1={PAD.l}
+              x2={w - PAD.r}
+              y1={y(v)}
+              y2={y(v)}
+              stroke="var(--grid)"
+            />
             {!toxic && (
-              <text x={PAD.l - 8} y={y(v) + 3} textAnchor="end" className="chart-label">
+              <text
+                x={PAD.l - 8}
+                y={y(v) + 3}
+                textAnchor="end"
+                className="chart-label"
+              >
                 {relative ? `${Math.round(v)}%` : axisValue(v, yMax)}
               </text>
             )}
           </g>
         ))}
-        <text x={10} y={PAD.t + ih / 2} transform={`rotate(-90 10 ${PAD.t + ih / 2})`} textAnchor="middle" className="chart-label">
-          {toxic ? "relative level" : relative ? "% of typical peak" : unitOf(yMax)}
+        <text
+          x={10}
+          y={PAD.t + ih / 2}
+          transform={`rotate(-90 10 ${PAD.t + ih / 2})`}
+          textAnchor="middle"
+          className="chart-label"
+        >
+          {toxic
+            ? tr.chart.relative
+            : relative
+              ? tr.chart.pctPeak
+              : unitOf(yMax)}
         </text>
         {xTicks.map((t) => (
-          <text key={t} x={x(t)} y={h - 8} textAnchor="middle" className="chart-label">
+          <text
+            key={t}
+            x={x(t)}
+            y={h - 8}
+            textAnchor="middle"
+            className="chart-label"
+          >
             {fmtTimeShort(t)}
           </text>
         ))}
@@ -146,7 +229,11 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
           <rect
             x={x(primary.window.onset)}
             y={PAD.t}
-            width={Math.max(0, x(Math.min(tEnd, primary.window.offset)) - x(primary.window.onset))}
+            width={Math.max(
+              0,
+              x(Math.min(tEnd, primary.window.offset)) -
+                x(primary.window.onset),
+            )}
             height={ih}
             fill={accent}
             opacity={0.06}
@@ -154,8 +241,22 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
         )}
         {thresholds.map((th) => (
           <g key={th.label}>
-            <line x1={PAD.l} x2={w - PAD.r} y1={y(th.y)} y2={y(th.y)} stroke={th.color} strokeDasharray="2 4" opacity={0.7} />
-            <text x={w - PAD.r - 4} y={y(th.y) - 5} textAnchor="end" className="chart-label" fill={th.color}>
+            <line
+              x1={PAD.l}
+              x2={w - PAD.r}
+              y1={y(th.y)}
+              y2={y(th.y)}
+              stroke={th.color}
+              strokeDasharray="2 4"
+              opacity={0.7}
+            />
+            <text
+              x={w - PAD.r - 4}
+              y={y(th.y) - 5}
+              textAnchor="end"
+              className="chart-label"
+              fill={th.color}
+            >
               {th.label}
             </text>
           </g>
@@ -164,7 +265,12 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
         {/* curves */}
         {series.map((s) => (
           <g key={s.key}>
-            {!s.dashed && <path d={`${path(s.ys)}L${x(tEnd)},${y(0)}L${x(0)},${y(0)}Z`} fill={`url(#fill-${s.key})`} />}
+            {!s.dashed && (
+              <path
+                d={`${path(s.ys)}L${x(tEnd)},${y(0)}L${x(0)},${y(0)}Z`}
+                fill={`url(#fill-${s.key})`}
+              />
+            )}
             <path
               d={path(s.ys)}
               fill="none"
@@ -178,24 +284,55 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
         {/* markers for the primary component */}
         {!compare && (
           <g className="chart-label">
-            <Marker x={x(primary.peak.tmax)} top={PAD.t} bottom={PAD.t + ih} color={markerColor} label="Tmax" />
+            <Marker
+              x={x(primary.peak.tmax)}
+              top={PAD.t}
+              bottom={PAD.t + ih}
+              color={markerColor}
+              label={tr.chart.tmax}
+            />
             {primary.halvings.slice(0, 4).map((t, i) =>
               t < tEnd ? (
                 <g key={i}>
-                  <line x1={x(t)} x2={x(t)} y1={PAD.t + ih - 6} y2={PAD.t + ih} stroke="var(--muted)" />
-                  <text x={x(t)} y={PAD.t + ih - 9} textAnchor="middle" fontSize={9}>
+                  <line
+                    x1={x(t)}
+                    x2={x(t)}
+                    y1={PAD.t + ih - 6}
+                    y2={PAD.t + ih}
+                    stroke="var(--muted)"
+                  />
+                  <text
+                    x={x(t)}
+                    y={PAD.t + ih - 9}
+                    textAnchor="middle"
+                    fontSize={9}
+                  >
                     {["½", "¼", "⅛", "1/16"][i]}
                   </text>
                 </g>
               ) : null,
             )}
             {primary.cleared < tEnd && (
-              <Marker x={x(primary.cleared)} top={PAD.t} bottom={PAD.t + ih} color="var(--muted)" label="≈ cleared" dashed />
+              <Marker
+                x={x(primary.cleared)}
+                top={PAD.t}
+                bottom={PAD.t + ih}
+                color="var(--muted)"
+                label={tr.chart.cleared}
+                dashed
+              />
             )}
           </g>
         )}
 
-        <Playhead x={x} y={y} top={PAD.t} bottom={PAD.t + ih} series={series} tEnd={tEnd} />
+        <Playhead
+          x={x}
+          y={y}
+          top={PAD.t}
+          bottom={PAD.t + ih}
+          series={series}
+          tEnd={tEnd}
+        />
       </svg>
 
       <Legend series={series} compare={compare} sim={sim} />
@@ -203,10 +340,32 @@ export function PkChart({ sim, compare }: { sim: Simulation; compare: Simulation
   );
 }
 
-function Marker({ x, top, bottom, color, label, dashed }: { x: number; top: number; bottom: number; color: string; label: string; dashed?: boolean }) {
+function Marker({
+  x,
+  top,
+  bottom,
+  color,
+  label,
+  dashed,
+}: {
+  x: number;
+  top: number;
+  bottom: number;
+  color: string;
+  label: string;
+  dashed?: boolean;
+}) {
   return (
     <g>
-      <line x1={x} x2={x} y1={top} y2={bottom} stroke={color} strokeDasharray={dashed ? "3 3" : "1 3"} opacity={0.8} />
+      <line
+        x1={x}
+        x2={x}
+        y1={top}
+        y2={bottom}
+        stroke={color}
+        strokeDasharray={dashed ? "3 3" : "1 3"}
+        opacity={0.8}
+      />
       <text x={x + 4} y={top + 9} fill={color} fontSize={10}>
         {label}
       </text>
@@ -230,29 +389,70 @@ function Playhead({
   series: Series[];
   tEnd: number;
 }) {
-  const t = Math.min(useApp((s) => s.t), tEnd);
+  const { f } = useI18n();
+  const t = Math.min(
+    useApp((s) => s.t),
+    tEnd,
+  );
   const i = Math.round((t / tEnd) * N);
   return (
     <g pointerEvents="none">
-      <line x1={x(t)} x2={x(t)} y1={top} y2={bottom} stroke="var(--fg)" strokeOpacity={0.55} />
+      <line
+        x1={x(t)}
+        x2={x(t)}
+        y1={top}
+        y2={bottom}
+        stroke="var(--fg)"
+        strokeOpacity={0.55}
+      />
       {series.map((s) => (
-        <circle key={s.key} cx={x(t)} cy={y(s.ys[i] ?? 0)} r={3.5} fill="var(--bg)" stroke={s.color} strokeWidth={2} />
+        <circle
+          key={s.key}
+          cx={x(t)}
+          cy={y(s.ys[i] ?? 0)}
+          r={3.5}
+          fill="var(--bg)"
+          stroke={s.color}
+          strokeWidth={2}
+        />
       ))}
-      <text x={x(t)} y={top - 3} textAnchor="middle" className="chart-label" fill="var(--fg)">
-        {fmtTime(t)}
+      <text
+        x={x(t)}
+        y={top - 3}
+        textAnchor="middle"
+        className="chart-label"
+        fill="var(--fg)"
+      >
+        {f.time(t)}
       </text>
     </g>
   );
 }
 
-function Legend({ series, compare, sim }: { series: Series[]; compare: Simulation | null; sim: Simulation }) {
+function Legend({
+  series,
+  compare,
+  sim,
+}: {
+  series: Series[];
+  compare: Simulation | null;
+  sim: Simulation;
+}) {
   if (series.length < 2) return null;
   return (
     <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 pl-[52px] text-[11px] text-[var(--muted)]">
       {series.map((s, i) => (
         <li key={s.key} className="flex items-center gap-1.5">
           <svg width="16" height="6" aria-hidden>
-            <line x1="0" x2="16" y1="3" y2="3" stroke={s.color} strokeWidth={2} strokeDasharray={s.dashed ? "4 3" : undefined} />
+            <line
+              x1="0"
+              x2="16"
+              y1="3"
+              y2="3"
+              stroke={s.color}
+              strokeWidth={2}
+              strokeDasharray={s.dashed ? "4 3" : undefined}
+            />
           </svg>
           {compare && i >= sim.components.length ? compare.drug.name : s.label}
         </li>
@@ -263,7 +463,11 @@ function Legend({ series, compare, sim }: { series: Series[]; compare: Simulatio
 
 function axisValue(v: number, yMax: number): string {
   const n = yMax >= 1 ? v : v * 1000;
-  return n >= 10 ? n.toFixed(0) : n === 0 ? "0" : n.toPrecision(2).replace(/\.?0+$/, "");
+  return n >= 10
+    ? n.toFixed(0)
+    : n === 0
+      ? "0"
+      : n.toPrecision(2).replace(/\.?0+$/, "");
 }
 
 function unitOf(yMax: number) {
@@ -278,7 +482,22 @@ function niceMax(v: number): number {
 }
 
 function timeTicks(tEnd: number): number[] {
-  const steps = [5 / 60, 10 / 60, 0.25, 0.5, 1, 2, 3, 4, 6, 12, 24, 48, 72, 168];
+  const steps = [
+    5 / 60,
+    10 / 60,
+    0.25,
+    0.5,
+    1,
+    2,
+    3,
+    4,
+    6,
+    12,
+    24,
+    48,
+    72,
+    168,
+  ];
   const step = steps.find((s) => tEnd / s <= 8) ?? 168;
   const out: number[] = [];
   for (let t = 0; t <= tEnd + 1e-9; t += step) out.push(+t.toFixed(6));

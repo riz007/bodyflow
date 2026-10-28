@@ -1,5 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { tf } from "@/i18n/dictionaries/en";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 
@@ -54,6 +56,8 @@ export function CookieConsent({
   gaId: string;
   analyticsEnabled: boolean;
 }) {
+  const { t } = useI18n();
+  const ck = t.cookies;
   const [consent, setConsent] = useState<Consent | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -116,35 +120,32 @@ gtag('config', '${gaId}');`}
               id="cookie-title"
               className="text-[14px] font-semibold text-[var(--fg)]"
             >
-              Cookies
+              {ck.title}
             </h2>
             <p id="cookie-desc" className="mt-1.5">
-              We&apos;d like to use Google Analytics cookies to understand how
-              Bodyflow is used, such as which medicines people explore. They are
-              only set if you accept. Bodyflow works the same either way, and
-              you can change your choice any time under &ldquo;Cookie
-              settings&rdquo; in the footer.
+              {ck.text}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => choose("denied")}
-                className="flex-1 rounded-full border border-white/20 px-4 py-2 font-medium text-[var(--fg)] hover:border-white/40"
+                className="min-w-[8rem] flex-1 rounded-full border border-white/20 px-4 py-2 font-medium text-[var(--fg)] hover:border-white/40"
               >
-                Reject
+                {ck.reject}
               </button>
               <button
                 type="button"
                 onClick={() => choose("granted")}
-                className="flex-1 rounded-full border border-white/20 px-4 py-2 font-medium text-[var(--fg)] hover:border-white/40"
+                className="min-w-[8rem] flex-1 rounded-full border border-white/20 px-4 py-2 font-medium text-[var(--fg)] hover:border-white/40"
               >
-                Accept
+                {ck.accept}
               </button>
             </div>
             {consent && (
               <p className="mt-3 text-[11.5px] text-[var(--muted)]">
-                Current choice:{" "}
-                {consent === "granted" ? "accepted" : "rejected"}.
+                {tf(ck.current, {
+                  choice: consent === "granted" ? ck.accepted : ck.rejected,
+                })}
               </p>
             )}
           </motion.div>
@@ -155,13 +156,14 @@ gtag('config', '${gaId}');`}
 }
 
 export function CookieSettingsLink() {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_SETTINGS))}
-      className="underline decoration-white/20 underline-offset-2 hover:text-[var(--fg)]"
+      className="whitespace-nowrap underline decoration-white/20 underline-offset-2 hover:text-[var(--fg)]"
     >
-      Cookie settings
+      {t.cookies.settings}
     </button>
   );
 }

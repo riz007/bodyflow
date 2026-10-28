@@ -1,11 +1,18 @@
 import type { Sourced } from "@/data/schema";
 
-/** Human time from hours: "25 min", "6.5 h", "3.2 days". */
-export function fmtTime(h: number): string {
+export interface TimeUnits {
+  min: string;
+  h: string;
+  days: string;
+}
+const EN_UNITS: TimeUnits = { min: "min", h: "h", days: "days" };
+
+/** Human time from hours: "25 min", "6.5 h", "3.2 days" (unit words per language). */
+export function fmtTime(h: number, u: TimeUnits = EN_UNITS): string {
   if (!Number.isFinite(h)) return "—";
-  if (h < 1) return `${Math.round(h * 60)} min`;
-  if (h < 48) return `${trim(h < 10 ? h.toFixed(1) : h.toFixed(0))} h`;
-  return `${trim((h / 24).toFixed(1))} days`;
+  if (h < 1) return `${Math.round(h * 60)} ${u.min}`;
+  if (h < 48) return `${trim(h < 10 ? h.toFixed(1) : h.toFixed(0))} ${u.h}`;
+  return `${trim((h / 24).toFixed(1))} ${u.days}`;
 }
 
 /** Compact axis label. */
@@ -34,11 +41,15 @@ export function fmtMg(mg: number): string {
 }
 
 /** Display a sourced literature value with its range. */
-export function fmtSourced(v: Sourced, kind: "time" | "fraction" | "volume" | "mg" | "conc"): string {
+export function fmtSourced(
+  v: Sourced,
+  kind: "time" | "fraction" | "volume" | "mg" | "conc",
+  u: TimeUnits = EN_UNITS,
+): string {
   const one = (x: number) => {
     switch (kind) {
       case "time":
-        return fmtTime(x);
+        return fmtTime(x, u);
       case "fraction":
         return fmtPct(x);
       case "mg":
@@ -76,3 +87,14 @@ function sig(x: number): string {
 function trim(s: string): string {
   return s.includes(".") ? s.replace(/\.?0+$/, "") : s;
 }
+
+export interface Formatters {
+  time: (h: number) => string;
+  sourced: (v: Sourced, kind: Parameters<typeof fmtSourced>[1]) => string;
+}
+
+/** Formatters bound to one language's time units. */
+export const makeFormatters = (u: TimeUnits): Formatters => ({
+  time: (h) => fmtTime(h, u),
+  sourced: (v, kind) => fmtSourced(v, kind, u),
+});
