@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CameraControls } from "@react-three/drei";
 import { useApp } from "@/state/store";
 import { introProgress } from "./intro";
+import { cameraApi } from "./cameraApi";
 import { organRegistry } from "./registry";
 
 const HOME_TARGET = new THREE.Vector3(0, 1.15, 0);
@@ -43,10 +44,11 @@ export function CameraRig({ domElement }: { domElement: HTMLElement }) {
   // Focus on the selected organ, or return home. Distance is derived from the field of view so
   // the organ fills about two thirds of the shorter screen axis, and the wheel can't dolly into it.
   const camera = useThree((s) => s.camera as THREE.PerspectiveCamera);
-  useEffect(() => {
+  const frame = useCallback(() => {
     const c = ref.current;
-    if (!c || !introDone) return;
-    const entry = selected ? organRegistry.get(selected) : null;
+    if (!c) return;
+    const { selectedOrgan } = useApp.getState();
+    const entry = selectedOrgan ? organRegistry.get(selectedOrgan) : null;
     if (entry) {
       const { center, radius } = entry.sphere;
       const vfov = THREE.MathUtils.degToRad(camera.fov);
@@ -59,11 +61,29 @@ export function CameraRig({ domElement }: { domElement: HTMLElement }) {
       c.setLookAt(pos.x, pos.y, pos.z, center.x, center.y, center.z, true);
     } else {
       const home = homePosition(aspect);
-      c.minDistance = 0.6;
+      c.minDistance = 0.35;
       c.maxDistance = 4.5;
       c.setLookAt(home.x, home.y, home.z, HOME_TARGET.x, HOME_TARGET.y, HOME_TARGET.z, true);
     }
-  }, [selected, introDone, aspect, camera]);
+  }, [aspect, camera]);
+
+  useEffect(() => {
+    if (introDone) frame();
+  }, [selected, introDone, frame]);
+
+  // Imperative zoom for the on-screen buttons and keyboard shortcuts (which live outside the canvas).
+  useEffect(() => {
+    cameraApi.zoom = (factor) => {
+      const c = ref.current;
+      if (!c || !useApp.getState().introDone) return;
+      c.dollyTo(THREE.MathUtils.clamp(c.distance * factor, c.minDistance, c.maxDistance), true);
+    };
+    cameraApi.reset = () => useApp.getState().introDone && frame();
+    return () => {
+      cameraApi.zoom = () => {};
+      cameraApi.reset = () => {};
+    };
+  }, [frame]);
 
   return (
     <CameraControls
@@ -71,8 +91,11 @@ export function CameraRig({ domElement }: { domElement: HTMLElement }) {
       domElement={domElement}
       makeDefault
       enabled={introDone}
-      smoothTime={0.55}
+      smoothTime={0.4}
       draggingSmoothTime={0.12}
+      // Faster than the default wheel zoom, towards the orbit target. (Dolly-to-cursor also moves the
+      // target, which let a few quick wheel ticks carry the camera inside the body.)
+      dollySpeed={1.6}
       dollyToCursor={false}
       minPolarAngle={0.15}
       maxPolarAngle={Math.PI - 0.15}

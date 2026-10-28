@@ -1,10 +1,20 @@
+import { SITE } from "@/lib/site";
+import { CookieConsent } from "@/ui/CookieConsent";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter_Tight } from "next/font/google";
-import { SITE } from "@/lib/site";
 import "./globals.css";
 
-const sans = Inter_Tight({ variable: "--font-sans-face", subsets: ["latin"], display: "swap" });
-const mono = IBM_Plex_Mono({ variable: "--font-mono-face", subsets: ["latin"], weight: ["400", "500"], display: "swap" });
+const sans = Inter_Tight({
+  variable: "--font-sans-face",
+  subsets: ["latin"],
+  display: "swap",
+});
+const mono = IBM_Plex_Mono({
+  variable: "--font-mono-face",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -21,7 +31,14 @@ export const metadata: Metadata = {
     description: SITE.tagline,
     url: "/",
     locale: "en_GB",
-    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Bodyflow: a glowing 3D body showing how a medicine moves through it" }],
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "Bodyflow: a glowing 3D body showing how a medicine moves through it",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -29,7 +46,11 @@ export const metadata: Metadata = {
     description: SITE.tagline,
     images: ["/api/og"],
   },
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
   formatDetection: { telephone: false },
 };
 
@@ -40,10 +61,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${mono.variable} antialiased`}>{children}</body>
+      <body className={`${sans.variable} ${mono.variable} antialiased`}>
+        {children}
+        {/* Google Analytics loads only after cookie consent, and only in production builds. */}
+        <CookieConsent
+          gaId={SITE.gaId}
+          analyticsEnabled={process.env.NODE_ENV === "production"}
+        />
+      </body>
     </html>
   );
 }

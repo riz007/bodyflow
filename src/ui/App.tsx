@@ -1,28 +1,41 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { useCompareSimulation, usePlayback, useSimulation } from "@/state/hooks";
+import {
+  useCompareSimulation,
+  usePlayback,
+  useSimulation,
+} from "@/state/hooks";
 import { SIM_HOURS_PER_SECOND_AT_1X, SPEEDS, useApp } from "@/state/store";
 import { UrlSync } from "@/state/UrlSync";
+import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { CookieSettingsLink } from "./CookieConsent";
+import { cameraApi, ZOOM_STEP } from "@/scene/cameraApi";
+import { DisclaimerButton, PanelDisclaimer } from "./Disclaimer";
 import { DrugPicker } from "./DrugPicker";
 import { OrganPanel } from "./OrganPanel";
 import { OverviewPanel } from "./OverviewPanel";
 import { Stage } from "./Stage";
 import { Timeline } from "./Timeline";
-import { ToxicExplainer } from "./ToxicPanel";
-import { DisclaimerButton, PanelDisclaimer } from "./Disclaimer";
+import { ToxicBanner, ToxicExplainer } from "./ToxicPanel";
 
 /** Choose the slowest speed that plays the whole timeline in about a minute or less. */
 function autoSpeed(tEnd: number) {
-  return SPEEDS.find((s) => tEnd / (s * SIM_HOURS_PER_SECOND_AT_1X) <= 75) ?? SPEEDS[SPEEDS.length - 1];
+  return (
+    SPEEDS.find((s) => tEnd / (s * SIM_HOURS_PER_SECOND_AT_1X) <= 75) ??
+    SPEEDS[SPEEDS.length - 1]
+  );
 }
 
 export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
   const sim = useSimulation();
   const compare = useCompareSimulation();
   const selectedOrgan = useApp((s) => s.selectedOrgan);
-  const tEnd = sim ? (compare ? Math.max(sim.tEnd, compare.tEnd) : sim.tEnd) : 1;
+  const tEnd = sim
+    ? compare
+      ? Math.max(sim.tEnd, compare.tEnd)
+      : sim.tEnd
+    : 1;
   usePlayback(tEnd);
 
   const drugId = sim?.drug.id;
@@ -37,6 +50,10 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
       if (target.matches("input, textarea")) return;
       const s = useApp.getState();
       if (e.key === "Escape") s.selectOrgan(null);
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // leave browser zoom (Cmd/Ctrl +/−) alone
+      if (e.key === "+" || e.key === "=") cameraApi.zoom(ZOOM_STEP);
+      if (e.key === "-" || e.key === "_") cameraApi.zoom(1 / ZOOM_STEP);
+      if (e.key === "0") cameraApi.reset();
       if (e.key === " " && s.drugId && !target.matches("button, a, summary")) {
         e.preventDefault();
         s.setPlaying(!s.playing);
@@ -61,14 +78,22 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
     <div className="app-grid h-dvh">
       <UrlSync initialDrugId={initialDrugId} />
       <header className="area-head flex items-center justify-between border-b border-[var(--line)] px-5">
-        <Link href="/" onClick={() => useApp.getState().selectDrug(null)} className="flex items-center gap-2.5 font-semibold tracking-tight">
+        <Link
+          href="/"
+          onClick={() => useApp.getState().selectDrug(null)}
+          className="flex items-center gap-2.5 font-semibold tracking-tight"
+        >
           <span className="logo-mark" aria-hidden />
           Bodyflow
         </Link>
         <div className="flex items-center gap-2">
           <DisclaimerButton />
           {sim && (
-            <button type="button" onClick={copyLink} className="rounded-full border border-[var(--line)] px-3.5 py-1.5 text-[12.5px] hover:border-white/30">
+            <button
+              type="button"
+              onClick={copyLink}
+              className="rounded-full border border-[var(--line)] px-3.5 py-1.5 text-[12.5px] hover:border-white/30"
+            >
               {share === "copied" ? "Link copied" : "Share"}
             </button>
           )}
@@ -83,7 +108,10 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
         <Stage sim={sim} compare={compare} />
       </main>
 
-      <aside className="area-right min-h-0 overflow-y-auto border-l border-[var(--line)] p-5" aria-live="polite">
+      <aside
+        className="area-right min-h-0 overflow-y-auto border-l border-[var(--line)] p-5"
+        aria-live="polite"
+      >
         <AnimatePresence mode="wait">
           {sim ? (
             <motion.div
@@ -94,25 +122,48 @@ export function App({ initialDrugId }: { initialDrugId?: string } = {}) {
               transition={{ duration: 0.25 }}
               className="space-y-6"
             >
-              {sim.level === "toxic" && <ToxicExplainer drug={sim.drug} />}
-              {selectedOrgan ? <OrganPanel sim={sim} organ={selectedOrgan} /> : <OverviewPanel sim={sim} />}
+              {sim.level === "toxic" && (
+                <>
+                  <ToxicBanner />
+                  <ToxicExplainer drug={sim.drug} />
+                </>
+              )}
+              {selectedOrgan ? (
+                <OrganPanel sim={sim} organ={selectedOrgan} />
+              ) : (
+                <OverviewPanel sim={sim} />
+              )}
               <PanelDisclaimer />
             </motion.div>
           ) : (
-            <motion.p key="none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-[var(--muted)]">
-              Choose a medicine to see how your body absorbs, distributes, metabolises and excretes it.
+            <motion.p
+              key="none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-sm text-[var(--muted)]"
+            >
+              Choose a medicine to see how your body absorbs, distributes,
+              metabolises and excretes it.
             </motion.p>
           )}
         </AnimatePresence>
       </aside>
 
       <div className="area-time min-h-0 border-t border-[var(--line)]">
-        {sim ? <Timeline sim={sim} compare={compare} /> : <div className="h-full" />}
+        {sim ? (
+          <Timeline sim={sim} compare={compare} />
+        ) : (
+          <div className="h-full" />
+        )}
       </div>
 
       <footer className="area-foot flex items-center justify-center border-t border-[var(--line)] px-4 py-2 text-center text-[11px] text-[var(--muted)]">
-        Educational visualisation only. Not medical advice. Values are approximate population averages. Always check with a doctor or pharmacist,
-        and go to hospital if you feel unwell.
+        <span>
+          Educational visualisation only. Not medical advice. Values are
+          approximate population averages. Always check with a doctor or
+          pharmacist, and go to hospital if you feel unwell. ·{" "}
+          <CookieSettingsLink />
+        </span>
       </footer>
     </div>
   );

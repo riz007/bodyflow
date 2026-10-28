@@ -148,7 +148,8 @@ export function Body({ url, sim, compare }: { url: string; sim: Simulation | nul
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     const id = e.object.userData.organ as OrganId | undefined;
-    if (!id || e.nativeEvent.button !== 0) return;
+    // Ignore clicks during the intro: the camera is scripted then and can't fly to the organ.
+    if (!id || e.nativeEvent.button !== 0 || !useApp.getState().introDone) return;
     const { clientX: x, clientY: y } = e.nativeEvent;
     window.addEventListener(
       "pointerup",
